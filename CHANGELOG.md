@@ -6,6 +6,9 @@
 
 - **修复 PID 归因错误**(影响 `trace` 的顶层进程排行):解析 tracefs 行头时用**第一个** `-` 切分 `<comm>-<pid>`,但任务名本身可能含 `-`(`jbd2/vda1-8` …),pid 解析随即失败恒为 0 —— ext4 日志线程 jbd2 的 I/O 被整批并进 PID 0(报告里显示为 `[kern]`)。改为取该字段**最后一个** `-`(以 `[<cpu>]` 为边界,任务名含空格亦能解析)。
   实测(204 真机):真实行 `jbd2/vda1-8-270 …` 修复前 pid=0 / 修复后 270;同负载下报告里 jbd2 由并入 `[kern]` 变为 **PID 270 独立成行**。
+- **新增 `-V` / `-version` / `--version`**:此前 Go 代码里**没有 `Version` 符号**,Makefile 的
+  `-ldflags "-X main.Version=..."` 一直是**空操作**,二进制无法自报版本(版本号还停在 1.1.0)。现补 `main.Version`
+  变量并被 Makefile 注入,`-V` 打印版本、usage 头也带版本 —— 交付件可自报版本、便于与 md5/CHANGELOG 对账。
 - **修复 `analyze` 的绝对时间**:blktrace 的 time 字段是"采集机**开机以来**的纳秒"(非 Unix epoch),原码 `time.Unix(0, hdr.Time)` 当成 epoch ⇒ `-v` 打出 1970+uptime 的假时钟(实测显示 20:22:51,而真实采集于 22:2x)。改为 rebase 到 trace 起点(首事件显示 00:00:00),与官方 `blkparse` 的约定一致;报告所有数值逐字节不变。
 
 ## v1.1.1 (2026-08-19)
